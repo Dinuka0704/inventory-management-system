@@ -313,6 +313,115 @@ app.post('/api/transactions', auth, async (req, res) => {
   }
 });
 
+
+// ---------------------------
+// --- CATEGORIES API ROUTES ---
+// ---------------------------
+
+// @route   POST /api/categories
+// @desc    Create a new category
+// @access  Private (Admin, Keeper)
+app.post('/api/categories', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name) {
+      return res.status(400).json({ msg: 'Please provide a name' });
+    }
+
+    const newCategory = await pool.query(
+      "INSERT INTO Categories (name) VALUES ($1) RETURNING *",
+      [name]
+    );
+
+    res.status(201).json(newCategory.rows[0]);
+
+  } catch (err) {
+    if (err.code === '23505') { // Unique violation
+      return res.status(400).json({ msg: 'Category name already exists' });
+    }
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+
+// @route   GET /api/categories
+// @desc    Get all categories
+// @access  Private (All logged-in users)
+app.get('/api/categories', auth, async (req, res) => {
+  try {
+    const allCategories = await pool.query("SELECT * FROM Categories ORDER BY name ASC");
+    res.json(allCategories.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+
+// @route   PUT /api/categories/:id
+// @desc    Update a category name
+// @access  Private (Admin, Keeper)
+app.put('/api/categories/:id', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+
+    if (!name) {
+      return res.status(400).json({ msg: 'Please provide a name' });
+    }
+
+    const updatedCategory = await pool.query(
+      "UPDATE Categories SET name = $1 WHERE id = $2 RETURNING *",
+      [name, id]
+    );
+
+    if (updatedCategory.rows.length === 0) {
+      return res.status(404).json({ msg: 'Category not found' });
+    }
+
+    res.json(updatedCategory.rows[0]);
+
+  } catch (err) {
+    if (err.code === '23505') {
+      return res.status(400).json({ msg: 'Category name already exists' });
+    }
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+
+// @route   DELETE /api/categories/:id
+// @desc    Delete a category
+// @access  Private (Admin, Keeper)
+app.delete('/api/categories/:id', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deleteOp = await pool.query("DELETE FROM Categories WHERE id = $1 RETURNING *", [id]);
+
+    if (deleteOp.rows.length === 0) {
+      return res.status(404).json({ msg: 'Category not found' });
+    }
+
+    res.json({ msg: 'Category deleted successfully' });
+
+  } catch (err) {
+    // This is important! This error code means an item still uses this category.
+    if (err.code === '23503') { // Foreign key violation
+      return res.status(400).json({ 
+        msg: 'Cannot delete category. It is still being used by one or more items.' 
+      });
+    }
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// ... (your app.listen code at the very bottom)
+
+
 // --- START SERVER ---
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
