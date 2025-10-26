@@ -8,10 +8,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const auth = require('./middleware/auth');
 const authorize = require('./middleware/authorize');
+const cors = require('cors');
 
 // 3. Set up the Express server
 const app = express();
 app.use(express.json()); // Middleware to parse JSON bodies
+app.use(cors()); // Enable CORS for all routes
+
 
 // --- ROUTES ---
 
@@ -111,8 +114,6 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-// ... (after your /api/auth/login route)
-
 // --- PROTECTED TEST ROUTES ---
 
 // @route   GET /api/test/all
@@ -144,9 +145,6 @@ app.get('/api/test/admin', [auth, authorize('Admin')], (req, res) => {
     msg: "Welcome Admin! This is the top-secret area."
   });
 });
-
-
-// ... (your auth routes and middleware)
 
 // ---------------------------
 // --- INVENTORY API ROUTES ---
@@ -313,10 +311,7 @@ app.post('/api/transactions', auth, async (req, res) => {
   }
 });
 
-
-// ---------------------------
 // --- CATEGORIES API ROUTES ---
-// ---------------------------
 
 // @route   POST /api/categories
 // @desc    Create a new category
@@ -418,9 +413,6 @@ app.delete('/api/categories/:id', [auth, authorize('Admin', 'Keeper')], async (r
     res.status(500).send('Server Error');
   }
 });
-
-// ... (your app.listen code at the very bottom)
-
 
 // --- START SERVER ---
 const PORT = process.env.PORT || 5000;
