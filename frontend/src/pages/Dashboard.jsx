@@ -1,9 +1,29 @@
 // /frontend/src/pages/Dashboard.jsx
 import React from "react";
+import { useState, useEffect } from "react";
+import { getItems} from "../services/api";
+import { getCategories } from "../services/api";
+
 import { useAuth } from "../context/AuthContext";
 
 function Dashboard() {
   const { user } = useAuth();
+  const [items, setItems] = useState([]);
+  const [catogary, setCatogary] = useState([]);
+
+  useEffect(() => {
+    const fetchItems = async () => {
+      const response = await getItems();
+      setItems(response.data);
+    };
+    const fetchCatogary = async () => {
+      const response = await getCategories();
+      setCatogary(response.data);
+    };
+
+    fetchItems();
+    fetchCatogary();
+  }, []);
 
   return (
     <div className="container mx-auto px-4">
@@ -22,7 +42,7 @@ function Dashboard() {
           <h3 className="text-lg font-semibold text-gray-800 mb-2">
             Total Items
           </h3>
-          <p className="text-3xl font-bold text-indigo-600">0</p>
+          <p className="text-3xl font-bold text-indigo-600">{items.length}</p>
         </div>
 
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -36,7 +56,7 @@ function Dashboard() {
           <h3 className="text-lg font-semibold text-gray-800 mb-2">
             Categories
           </h3>
-          <p className="text-3xl font-bold text-green-600">0</p>
+          <p className="text-3xl font-bold text-green-600">{catogary.length}</p>
         </div>
       </div>
     </div>
