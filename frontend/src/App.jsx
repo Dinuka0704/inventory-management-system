@@ -5,6 +5,7 @@ import { useAuth } from './context/AuthContext';
 // Import Pages and Components
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import InventoryPage from './pages/InventoryPage';
 import MainLayout from './components/MainLayout';
 import ProtectedRoute from './components/ProtectedRout';
 
@@ -36,7 +37,7 @@ function App() {
         {/* Child routes of MainLayout */}
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
-        {/* <Route path="inventory" element={<InventoryPage />} /> */}
+        <Route path="inventory" element={<InventoryPage />} />
         {/* <Route path="users" element={<UserManagementPage />} /> */}
       </Route>
 
