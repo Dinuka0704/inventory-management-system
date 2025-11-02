@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import Modal from "../components/Modal";
 import AddItemForm from "../components/AddItemForm";
 import EditItemForm from "../components/EditItemForm";
+import TransactionForm from "../components/TransactionForm";
 
 function InventoryPage() {
   const [items, setItems] = useState([]);
@@ -14,6 +15,7 @@ function InventoryPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isTxModalOpen, setIsTxModalOpen] = useState(false);
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
@@ -51,10 +53,16 @@ function InventoryPage() {
     setIsAddModalOpen(false);
     setIsEditModalOpen(false);
     setIsDeleteModalOpen(false);
+    setIsTxModalOpen(false);
     setSelectedItem(null);
   };
 
-  const handleConfirmDelete = async () => {
+  const handleAdjestClick = (item) => {
+    setSelectedItem(item);
+    setIsTxModalOpen(true);
+  }
+
+  async function handleConfirmDelete() {
     if (!selectedItem) return;
 
     setIsDeleting(true);
@@ -68,7 +76,7 @@ function InventoryPage() {
     } finally {
       setIsDeleting(false);
     }
-  };
+  }
 
   if (loading) {
     return <div className="text-center text-gray-600">Loading...</div>;
@@ -97,9 +105,7 @@ function InventoryPage() {
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                SKU
-              </th>
+              {/* ... (other headers) ... */}
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Name
               </th>
@@ -109,12 +115,13 @@ function InventoryPage() {
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Stock
               </th>
+              {/* 5. Add new header for this action */}
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                Reorder
+                Stock Actions
               </th>
               {isKeeper && (
                 <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                  Actions
+                  Item Actions
                 </th>
               )}
             </tr>
@@ -122,10 +129,7 @@ function InventoryPage() {
           <tbody className="divide-y divide-gray-200 bg-white">
             {items.map((item) => (
               <tr key={item.id} className="hover:bg-gray-50">
-                {/* ... (table data) ... */}
-                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                  {item.sku}
-                </td>
+                {/* ... (other table data) ... */}
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
                   {item.name}
                 </td>
@@ -135,9 +139,17 @@ function InventoryPage() {
                 <td className="whitespace-nowrap px-6 py-4 text-sm font-bold text-gray-900">
                   {item.current_stock}
                 </td>
-                <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-700">
-                  {item.reorder_level}
+
+                {/* 6. Add new cell with the "Adjust" button */}
+                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
+                  <button
+                    onClick={() => handleAdjestClick(item)}
+                    className="rounded-md bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 transition hover:bg-blue-200"
+                  >
+                    Adjust
+                  </button>
                 </td>
+
                 {isKeeper && (
                   <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                     <button
@@ -219,6 +231,22 @@ function InventoryPage() {
           </div>
         </Modal>
       )}
+      {selectedItem && (
+        <Modal
+          isOpen={isTxModalOpen}
+          onClose={handleCloseModals}
+          title={`Log Transaction for ${selectedItem.name}`}
+        >
+          <TransactionForm
+            item={selectedItem}
+            onClose={handleCloseModals}
+            onSuccess={() => {
+              fetchItems(); // Refetch the items list after success
+            }}
+          />
+        </Modal>
+      )}
+
     </div>
   );
 }

@@ -27,5 +27,12 @@ export const createItem = (itemData) => api.post("/items", itemData); // Add thi
 export const createTransaction = (txData) => api.post("/transactions", txData);
 export const updateItem = (id,itemData) => api.put(`/items/${id}`, itemData);
 export const deactivateItem = (id) => api.delete(`/items/${id}/deactivate`);
+export const createCategory = (name) => api.post('/categories', { name });
+export const updateCategory = (id, name) => api.put(`/categories/${id}`, { name });
+export const deleteCategory = (id) => api.delete(`/categories/${id}`);
+export const getTransactions = () => api.get('/transactions');
+export const getUsers = () => api.get('/users');
+export const registerUser = (userData) => api.post('/auth/register', userData);
+export const updateUser = (id, userData) => api.put(`/users/${id}`, userData);
 
 export default api;
