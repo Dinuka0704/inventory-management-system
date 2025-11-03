@@ -30,9 +30,14 @@ export const deactivateItem = (id) => api.delete(`/items/${id}/deactivate`);
 export const createCategory = (name) => api.post('/categories', { name });
 export const updateCategory = (id, name) => api.put(`/categories/${id}`, { name });
 export const deleteCategory = (id) => api.delete(`/categories/${id}`);
-export const getTransactions = () => api.get('/transactions');
+export const getTransactions = (limit = null) => {
+  const params = limit ? { limit } : {};
+  return api.get('/transactions', { params });
+};
 export const getUsers = () => api.get('/users');
 export const registerUser = (userData) => api.post('/auth/register', userData);
 export const updateUser = (id, userData) => api.put(`/users/${id}`, userData);
+export const getDashboardStats = () => api.get('/stats/summary');
+export const getLowStockItems = () => api.get('/reports/low-stock');
 
 export default api;

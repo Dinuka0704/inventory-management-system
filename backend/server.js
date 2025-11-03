@@ -116,6 +116,52 @@ app.put('/api/users/:id', [auth, authorize('Admin')], async (req, res) => {
   }
 });
 
+// ---------------------------
+// --- DASHBOARD API ROUTES ---
+// ---------------------------
+
+// @route   GET /api/stats/summary
+// @desc    Get dashboard summary stats
+// @access  Private (All logged-in users)
+app.get('/api/stats/summary', auth, async (req, res) => {
+  try {
+    // Run all count queries in parallel
+    const [totalItemsRes, totalStockRes, lowStockRes] = await Promise.all([
+      pool.query("SELECT COUNT(*) FROM Items WHERE is_active = true"),
+      pool.query("SELECT SUM(current_stock) FROM Items WHERE is_active = true"),
+      pool.query("SELECT COUNT(*) FROM Items WHERE current_stock < reorder_level AND is_active = true")
+    ]);
+
+    res.json({
+      totalItems: parseInt(totalItemsRes.rows[0].count, 10),
+      totalStock: parseInt(totalStockRes.rows[0].sum, 10) || 0,
+      lowStockItems: parseInt(lowStockRes.rows[0].count, 10),
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/reports/low-stock
+// @desc    Get items that are low on stock
+// @access  Private (Keeper, Admin)
+app.get('/api/reports/low-stock', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
+  try {
+    const items = await pool.query(
+      `SELECT id, sku, name, current_stock, reorder_level 
+       FROM Items
+       WHERE current_stock < reorder_level AND is_active = true
+       ORDER BY (reorder_level - current_stock) DESC`
+    );
+    res.json(items.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 /*
  * @route   POST /api/auth/login
  * @desc    Authenticate user & get token
@@ -349,8 +395,12 @@ app.put(
 // @access  Private (Admin, Keeper)
 app.get('/api/transactions', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
   try {
-    const transactions = await pool.query(
-      `SELECT 
+    // 1. Get limit from query params
+    const { limit } = req.query;
+
+    // 2. Base query
+    let queryString = `
+      SELECT 
          tx.id, 
          tx.type, 
          tx.quantity, 
@@ -361,8 +411,19 @@ app.get('/api/transactions', [auth, authorize('Admin', 'Keeper')], async (req, r
        FROM InventoryTransactions tx
        JOIN Items i ON tx.item_id = i.id
        LEFT JOIN Users u ON tx.user_id = u.id
-       ORDER BY tx.created_at DESC`
-    );
+       ORDER BY tx.created_at DESC
+    `;
+    
+    const queryParams = [];
+
+    // 3. Add LIMIT if it exists
+    if (limit) {
+      queryString += ` LIMIT $1`;
+      queryParams.push(parseInt(limit));
+    }
+
+    // 4. Execute the query
+    const transactions = await pool.query(queryString, queryParams);
     
     res.json(transactions.rows);
 
