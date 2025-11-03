@@ -3,13 +3,13 @@ import { Outlet, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 function MainLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout, isKeeper, isAdmin } = useAuth();
 
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
       <div className="flex w-64 flex-col bg-gray-900 text-white">
-        <div className="p-5 text-2xl font-bold">IMS</div>
+        <div className="p-5 text-2xl font-bold">Inv-Manager</div>
         <nav className="flex-1 p-4">
           <Link
             to="/dashboard"
@@ -23,7 +23,33 @@ function MainLayout() {
           >
             Inventory
           </Link>
-          {/* We can add more links here later */}
+          {isKeeper && (
+            <>
+            <Link 
+              to="/categories" 
+              className="block rounded-md py-2.5 px-4 transition duration-200 hover:bg-gray-700"
+            >
+              Categories
+            </Link>
+
+            <Link 
+              to="/transactions" 
+              className="block rounded-md py-2.5 px-4 transition duration-200 hover:bg-gray-700"
+            >
+              Transaction Log
+            </Link>
+            </>
+            
+          )}
+          {isAdmin && (
+            <Link 
+              to="/users" 
+              className="mt-4 border-t border-gray-700 pt-4 block rounded-md py-2.5 px-4 transition duration-200 hover:bg-gray-700"
+            >
+              User Management
+            </Link>
+          )}
+          
         </nav>
         <div className="border-t border-gray-700 p-4">
           <div className="mb-2">

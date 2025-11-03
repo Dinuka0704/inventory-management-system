@@ -6,8 +6,11 @@ import { useAuth } from './context/AuthContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import InventoryPage from './pages/InventoryPage';
+import CategoryPage from './pages/CategoryPage';
 import MainLayout from './components/MainLayout';
 import ProtectedRoute from './components/ProtectedRout';
+import TransactionPage from './pages/TransactionPage';
+import UserManagementPage from './pages/UserManagementPage';
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -38,6 +41,9 @@ function App() {
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="inventory" element={<InventoryPage />} />
+        <Route path="categories" element={<CategoryPage />} />
+        <Route path="transactions" element={<TransactionPage />} />
+        <Route path="users" element={<UserManagementPage />} />
         {/* <Route path="users" element={<UserManagementPage />} /> */}
       </Route>
 

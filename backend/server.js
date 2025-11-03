@@ -1,18 +1,15 @@
-// 1. Load .env variables
 require("dotenv").config();
 
-// 2. Require dependencies
 const express = require("express");
-const pool = require("./db"); // Our database connection
+const pool = require("./db"); 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const auth = require("./middleware/auth");
 const authorize = require("./middleware/authorize");
 const cors = require("cors");
 
-// 3. Set up the Express server
 const app = express();
-app.use(express.json()); // Middleware to parse JSON bodies
+app.use(express.json()); // Middleware to parse JSON body
 app.use(cors()); // Enable CORS for all routes
 
 // --- ROUTES ---
@@ -23,13 +20,13 @@ app.get("/", (req, res) => {
 
 /*
  * @route   POST /api/auth/register
- * @desc    Register a new user (Admin-only in future)
+ * @desc    Register a new user (Admin-only)
  */
-app.post("/api/auth/register", async (req, res) => {
+app.post('/api/auth/register', [auth, authorize('Admin')], async (req, res) => {
   try {
     const { username, password, role } = req.body;
 
-    // 1. Check if user already exists
+    // Check if user already exists
     const userExists = await pool.query(
       "SELECT * FROM Users WHERE username = $1",
       [username]
@@ -38,7 +35,7 @@ app.post("/api/auth/register", async (req, res) => {
       return res.status(400).json({ msg: "Username already exists" });
     }
 
-    // 2. Get the role_id from the role name
+    //Get the role_id from the role name
     const roleQuery = await pool.query("SELECT id FROM Roles WHERE name = $1", [
       role,
     ]);
@@ -47,11 +44,11 @@ app.post("/api/auth/register", async (req, res) => {
     }
     const role_id = roleQuery.rows[0].id;
 
-    // 3. Hash the password
+    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashed_password = await bcrypt.hash(password, salt);
 
-    // 4. Insert the new user
+    // Insert the new user
     const newUser = await pool.query(
       "INSERT INTO Users (username, hashed_password, role_id) VALUES ($1, $2, $3) RETURNING id, username, role_id",
       [username, hashed_password, role_id]
@@ -65,6 +62,105 @@ app.post("/api/auth/register", async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
+// @route   GET /api/users
+// @desc    Get all users
+// @access  Private (Admin Only)
+app.get('/api/users', [auth, authorize('Admin')], async (req, res) => {
+  try {
+    const users = await pool.query(
+      `SELECT u.id, u.username, r.name AS role, u.is_active, u.created_at 
+       FROM Users u
+       JOIN Roles r ON u.role_id = r.id
+       ORDER BY u.username ASC`
+    );
+    res.json(users.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+// @route   PUT /api/users/:id
+// @desc    Update a user's role or active status
+// @access  Private (Admin Only)
+app.put('/api/users/:id', [auth, authorize('Admin')], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role, is_active } = req.body;
+
+    // Prevent admin from deactivating themselves
+    if (parseInt(id) === req.user.id && is_active === false) {
+      return res.status(400).json({ msg: 'Admin cannot deactivate their own account.' });
+    }
+
+    // Get the role_id from the role name
+    const roleQuery = await pool.query("SELECT id FROM Roles WHERE name = $1", [role]);
+    if (roleQuery.rows.length === 0) {
+      return res.status(400).json({ msg: 'Invalid role' });
+    }
+    const role_id = roleQuery.rows[0].id;
+
+    // Update the user
+    const updatedUser = await pool.query(
+      `UPDATE Users 
+       SET role_id = $1, is_active = $2 
+       WHERE id = $3
+       RETURNING id, username, role_id, is_active`,
+      [role_id, is_active, id]
+    );
+
+    res.json(updatedUser.rows[0]);
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// ---------------------------
+// --- DASHBOARD API ROUTES ---
+// ---------------------------
+
+// @route   GET /api/stats/summary
+// @desc    Get dashboard summary stats
+// @access  Private (All logged-in users)
+app.get('/api/stats/summary', auth, async (req, res) => {
+  try {
+    // Run all count queries in parallel
+    const [totalItemsRes, totalStockRes, lowStockRes] = await Promise.all([
+      pool.query("SELECT COUNT(*) FROM Items WHERE is_active = true"),
+      pool.query("SELECT SUM(current_stock) FROM Items WHERE is_active = true"),
+      pool.query("SELECT COUNT(*) FROM Items WHERE current_stock < reorder_level AND is_active = true")
+    ]);
+
+    res.json({
+      totalItems: parseInt(totalItemsRes.rows[0].count, 10),
+      totalStock: parseInt(totalStockRes.rows[0].sum, 10) || 0,
+      lowStockItems: parseInt(lowStockRes.rows[0].count, 10),
+    });
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET /api/reports/low-stock
+// @desc    Get items that are low on stock
+// @access  Private (Keeper, Admin)
+app.get('/api/reports/low-stock', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
+  try {
+    const items = await pool.query(
+      `SELECT id, sku, name, current_stock, reorder_level 
+       FROM Items
+       WHERE current_stock < reorder_level AND is_active = true
+       ORDER BY (reorder_level - current_stock) DESC`
+    );
+    res.json(items.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 /*
  * @route   POST /api/auth/login
@@ -74,7 +170,7 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // 1. Check if user exists (and get their role)
+    // Check if user exists (and get their role)
     const userQuery = await pool.query(
       `SELECT u.id, u.username, u.hashed_password, r.name AS role 
        FROM Users u
@@ -88,13 +184,13 @@ app.post("/api/auth/login", async (req, res) => {
     }
     const user = userQuery.rows[0];
 
-    // 2. Validate password
+    // Validate password
     const isMatch = await bcrypt.compare(password, user.hashed_password);
     if (!isMatch) {
       return res.status(400).json({ msg: "Invalid credentials" });
     }
 
-    // 3. Create and sign JWT
+    // Create and sign JWT
     const payload = {
       user: {
         id: user.id,
@@ -108,7 +204,7 @@ app.post("/api/auth/login", async (req, res) => {
       { expiresIn: "5h" },
       (err, token) => {
         if (err) throw err;
-        res.json({ token }); // Send token to client
+        res.json({ token }); 
       }
     );
   } catch (err) {
@@ -294,7 +390,48 @@ app.put(
 // ---------------------------------
 // --- TRANSACTIONS API ROUTES ---
 // ---------------------------------
+// @route   GET /api/transactions
+// @desc    Get all transactions (for audit log)
+// @access  Private (Admin, Keeper)
+app.get('/api/transactions', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
+  try {
+    // 1. Get limit from query params
+    const { limit } = req.query;
 
+    // 2. Base query
+    let queryString = `
+      SELECT 
+         tx.id, 
+         tx.type, 
+         tx.quantity, 
+         tx.notes, 
+         tx.created_at,
+         i.name AS item_name,
+         u.username AS user_name
+       FROM InventoryTransactions tx
+       JOIN Items i ON tx.item_id = i.id
+       LEFT JOIN Users u ON tx.user_id = u.id
+       ORDER BY tx.created_at DESC
+    `;
+    
+    const queryParams = [];
+
+    // 3. Add LIMIT if it exists
+    if (limit) {
+      queryString += ` LIMIT $1`;
+      queryParams.push(parseInt(limit));
+    }
+
+    // 4. Execute the query
+    const transactions = await pool.query(queryString, queryParams);
+    
+    res.json(transactions.rows);
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 // @route   POST /api/transactions
 // @desc    Log a new stock transaction (IN/OUT/ADJUST)
 // @access  Private (All roles can do this)
