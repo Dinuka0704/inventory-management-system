@@ -290,8 +290,6 @@ app.post(
         req.body;
       const initial_stock = parseInt(req.body.initial_stock) || 0;
 
-      // 1. Create the item with a stock of 0.
-      // The trigger will handle setting the correct stock.
       const newItem = await pool.query(
         `INSERT INTO Items (sku, name, description, category_id, reorder_level, attributes, current_stock)
        VALUES ($1, $2, $3, $4, $5, $6, 0)
@@ -301,8 +299,6 @@ app.post(
 
       const createdItem = newItem.rows[0];
 
-      // 2. If initial stock was > 0, log it in the ledger.
-      // This will fire the trigger and update current_stock.
       if (initial_stock > 0) {
         await pool.query(
           `INSERT INTO InventoryTransactions (item_id, user_id, type, quantity, notes)
@@ -310,20 +306,17 @@ app.post(
           [createdItem.id, req.user.id, initial_stock]
         );
 
-        // Re-fetch the item to get the stock value updated by the trigger
         const updatedItemQuery = await pool.query(
           "SELECT * FROM Items WHERE id = $1",
           [createdItem.id]
         );
         res.status(201).json(updatedItemQuery.rows[0]);
       } else {
-        // If no initial stock, just return the item as-is
         res.status(201).json(createdItem);
       }
     } catch (err) {
       console.error(err.message);
       if (err.code === "23505") {
-        // Unique violation (e.g., duplicate SKU)
         return res.status(400).json({ msg: "SKU already exists" });
       }
       res.status(500).send("Server Error");
@@ -395,10 +388,8 @@ app.put(
 // @access  Private (Admin, Keeper)
 app.get('/api/transactions', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
   try {
-    // 1. Get limit from query params
     const { limit } = req.query;
 
-    // 2. Base query
     let queryString = `
       SELECT 
          tx.id, 
@@ -438,8 +429,7 @@ app.get('/api/transactions', [auth, authorize('Admin', 'Keeper')], async (req, r
 app.post("/api/transactions", auth, async (req, res) => {
   try {
     const { item_id, type, quantity, notes } = req.body;
-    const { id: user_id } = req.user; // Get user ID from auth middleware
-
+    const { id: user_id } = req.user; 
     // 1. Basic validation
     if (!item_id || !type || !quantity) {
       return res
@@ -447,20 +437,16 @@ app.post("/api/transactions", auth, async (req, res) => {
         .json({ msg: "Please provide item_id, type, and quantity" });
     }
 
-    // 2. Ensure quantity is a valid number
     let tx_quantity = parseInt(quantity);
     if (isNaN(tx_quantity)) {
       return res.status(400).json({ msg: "Quantity must be a number" });
     }
 
-    // 3. For OUTBOUND, make quantity negative
     if (type === "OUTBOUND") {
-      tx_quantity = -Math.abs(tx_quantity); // Ensure it's a negative number
-    } else {
-      tx_quantity = Math.abs(tx_quantity); // Ensure it's a positive number
+      tx_quantity = -Math.abs(tx_quantity); 
+      tx_quantity = Math.abs(tx_quantity); 
     }
 
-    // 4. (Optional but recommended) Check for sufficient stock on OUTBOUND
     if (type === "OUTBOUND") {
       const itemQuery = await pool.query(
         "SELECT current_stock FROM Items WHERE id = $1",
@@ -476,7 +462,6 @@ app.post("/api/transactions", auth, async (req, res) => {
       }
     }
 
-    // 5. Insert the transaction. The trigger will do the rest!
     const newTransaction = await pool.query(
       `INSERT INTO InventoryTransactions (item_id, user_id, type, quantity, notes)
        VALUES ($1, $2, $3, $4, $5)
