@@ -1,0 +1,55 @@
+# version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: inventory1_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: ims-backend:dev
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://postgres:1234@db:5433/iinventory1_db
+      PORT: "5432"
+      JWT_SECRET: myjwtsecretkey12345
+      NODE_ENV: development
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    ports:
+      - "5000:5000"
+    # command: sh -c "npm install --silent && npm run start"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: ims-frontend:dev
+    depends_on:
+      - backend
+    environment:
+      CHOKIDAR_USEPOLLING: "true"
+      NODE_ENV: development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    # command: sh -c "npm install --silent && npm run dev"
+
+volumes:
+  db-data:
+
+
