@@ -4,7 +4,7 @@ import { createTransaction } from '../services/api';
 
 function TransactionForm({ item, onSuccess, onClose }) {
   const [type, setType] = useState('INBOUND');
-  const [quantity, setQuantity] = useState(0);
+  const [quantity, setQuantity] = useState('');
   const [notes, setNotes] = useState('');
   
   const [error, setError] = useState(null);
@@ -12,8 +12,16 @@ function TransactionForm({ item, onSuccess, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (quantity <= 0) {
-      setError('Quantity must be greater than 0');
+
+    const numQuantity = parseInt(quantity);
+
+    if (isNaN(numQuantity) || numQuantity === 0) {
+      setError('Quantity must be a non-zero number');
+      return;
+    }
+    
+    if (type !== 'ADJUSTMENT' && numQuantity < 0) {
+      setError('Quantity must be positive for INBOUND or OUTBOUND');
       return;
     }
     
@@ -23,7 +31,7 @@ function TransactionForm({ item, onSuccess, onClose }) {
     const txData = {
       item_id: item.id,
       type,
-      quantity: parseInt(quantity),
+      quantity: numQuantity, // Send the number as-is (can be negative)
       notes,
     };
 
@@ -71,9 +79,14 @@ function TransactionForm({ item, onSuccess, onClose }) {
       
       <div className="mb-4">
         <label className="mb-1 block text-sm font-medium text-gray-700">Quantity*</label>
+        <p className="mb-1 text-xs text-gray-500">
+          {type === 'ADJUSTMENT' 
+            ? 'Use a negative number (e.g., -3) for damage/loss.' 
+            : 'Must be a positive number.'
+          }
+        </p>
         <input
           type="number"
-          min="1"
           className="w-full rounded-md border p-2 text-gray-900"
           value={quantity}
           onChange={(e) => setQuantity(e.target.value)}

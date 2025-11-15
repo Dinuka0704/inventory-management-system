@@ -1,14 +1,15 @@
 // /frontend/src/components/EditItemForm.jsx
-import { useState, useEffect } from 'react';
-import { getCategories, updateItem } from '../services/api';
+import { useState, useEffect } from "react";
+import { getCategories, updateItem } from "../services/api";
 
 function EditItemForm({ item, onSuccess, onClose }) {
   // Set initial state from the 'item' prop
   const [name, setName] = useState(item.name);
-  const [description, setDescription] = useState(item.description || '');
-  const [category_id, setCategoryId] = useState(item.category_id || '');
+  const [description, setDescription] = useState(item.description || "");
+  const [category_id, setCategoryId] = useState(item.category_id || "");
   const [reorder_level, setReorderLevel] = useState(item.reorder_level);
-  
+  const [cost, setCost] = useState(item.cost || 0);
+
   const [categories, setCategories] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ function EditItemForm({ item, onSuccess, onClose }) {
         const response = await getCategories();
         setCategories(response.data);
       } catch (err) {
-        console.error('Failed to fetch categories', err);
+        console.error("Failed to fetch categories", err);
       }
     };
     fetchCategories();
@@ -38,6 +39,7 @@ function EditItemForm({ item, onSuccess, onClose }) {
       description,
       category_id: category_id ? parseInt(category_id) : null,
       reorder_level: parseInt(reorder_level),
+      cost: parseFloat(cost),
       // We don't send attributes yet, but you could add them
     };
 
@@ -45,10 +47,10 @@ function EditItemForm({ item, onSuccess, onClose }) {
       await updateItem(item.id, itemData);
       setLoading(false);
       onSuccess(); // Tell the parent page to refetch items
-      onClose();   // Close the modal
+      onClose(); // Close the modal
     } catch (err) {
       setLoading(false);
-      setError(err.response?.data?.msg || 'Failed to update item');
+      setError(err.response?.data?.msg || "Failed to update item");
     }
   };
 
@@ -59,10 +61,12 @@ function EditItemForm({ item, onSuccess, onClose }) {
           {error}
         </div>
       )}
-      
+
       {/* Form fields */}
       <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700">Item Name*</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Item Name*
+        </label>
         <input
           type="text"
           className="w-full rounded-md border p-2 text-gray-900"
@@ -72,7 +76,9 @@ function EditItemForm({ item, onSuccess, onClose }) {
         />
       </div>
       <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Description
+        </label>
         <textarea
           className="w-full rounded-md border p-2 text-gray-900"
           value={description}
@@ -80,7 +86,23 @@ function EditItemForm({ item, onSuccess, onClose }) {
         />
       </div>
       <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700">Category</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Cost per Unit*
+        </label>
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          className="w-full rounded-md border p-2 text-gray-900"
+          value={cost}
+          onChange={(e) => setCost(e.target.value)}
+          required
+        />
+      </div>
+      <div className="mb-4">
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Category
+        </label>
         <select
           className="w-full rounded-md border bg-white p-2 text-gray-900"
           value={category_id}
@@ -95,7 +117,9 @@ function EditItemForm({ item, onSuccess, onClose }) {
         </select>
       </div>
       <div className="mb-4">
-        <label className="mb-1 block text-sm font-medium text-gray-700">Reorder Level*</label>
+        <label className="mb-1 block text-sm font-medium text-gray-700">
+          Reorder Level*
+        </label>
         <input
           type="number"
           min="0"
@@ -120,7 +144,7 @@ function EditItemForm({ item, onSuccess, onClose }) {
           disabled={loading}
           className="rounded-md bg-indigo-600 px-4 py-2 text-white shadow transition hover:bg-indigo-700 disabled:opacity-50"
         >
-          {loading ? 'Saving...' : 'Save Changes'}
+          {loading ? "Saving..." : "Save Changes"}
         </button>
       </div>
     </form>

@@ -25,31 +25,36 @@ function MainLayout() {
           </Link>
           {isKeeper && (
             <>
-            <Link 
-              to="/categories" 
-              className="block rounded-md py-2.5 px-4 transition duration-200 hover:bg-gray-700"
-            >
-              Categories
-            </Link>
+              <Link
+                to="/categories"
+                className="block rounded-md py-2.5 px-4 transition duration-200 hover:bg-gray-700"
+              >
+                Categories
+              </Link>
 
-            <Link 
-              to="/transactions" 
-              className="block rounded-md py-2.5 px-4 transition duration-200 hover:bg-gray-700"
-            >
-              Transaction Log
-            </Link>
+              <Link
+                to="/transactions"
+                className="block rounded-md py-2.5 px-4 transition duration-200 hover:bg-gray-700"
+              >
+                Transaction Log
+              </Link>
             </>
-            
           )}
+          <Link
+            to="/reports"
+            className="block rounded-md py-2.5 px-4 transition duration-200 hover:bg-gray-700"
+          >
+            Reports
+          </Link>
+
           {isAdmin && (
-            <Link 
-              to="/users" 
+            <Link
+              to="/users"
               className="mt-4 border-t border-gray-700 pt-4 block rounded-md py-2.5 px-4 transition duration-200 hover:bg-gray-700"
             >
               User Management
             </Link>
           )}
-          
         </nav>
         <div className="border-t border-gray-700 p-4">
           <div className="mb-2">

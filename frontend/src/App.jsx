@@ -11,6 +11,7 @@ import MainLayout from './components/MainLayout';
 import ProtectedRoute from './components/ProtectedRout';
 import TransactionPage from './pages/TransactionPage';
 import UserManagementPage from './pages/UserManagementPage';
+import ReportsPage from './pages/ReportPage';
 
 function App() {
   const { isAuthenticated } = useAuth();
@@ -44,6 +45,7 @@ function App() {
         <Route path="categories" element={<CategoryPage />} />
         <Route path="transactions" element={<TransactionPage />} />
         <Route path="users" element={<UserManagementPage />} />
+        <Route path="reports" element={<ReportsPage />} />
         {/* <Route path="users" element={<UserManagementPage />} /> */}
       </Route>
 

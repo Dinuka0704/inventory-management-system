@@ -34,6 +34,7 @@ export const getTransactions = (limit = null) => {
   const params = limit ? { limit } : {};
   return api.get('/transactions', { params });
 };
+export const getStockValueHistory = () => api.get('/reports/stock-value-history');
 export const getUsers = () => api.get('/users');
 export const registerUser = (userData) => api.post('/auth/register', userData);
 export const updateUser = (id, userData) => api.put(`/users/${id}`, userData);
