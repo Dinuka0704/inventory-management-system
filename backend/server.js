@@ -1,7 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
-const pool = require("./db"); 
+const pool = require("./db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const auth = require("./middleware/auth");
@@ -22,7 +22,7 @@ app.get("/", (req, res) => {
  * @route   POST /api/auth/register
  * @desc    Register a new user (Admin-only)
  */
-app.post('/api/auth/register', [auth, authorize('Admin')], async (req, res) => {
+app.post("/api/auth/register", [auth, authorize("Admin")], async (req, res) => {
   try {
     const { username, password, role } = req.body;
 
@@ -65,7 +65,7 @@ app.post('/api/auth/register', [auth, authorize('Admin')], async (req, res) => {
 // @route   GET /api/users
 // @desc    Get all users
 // @access  Private (Admin Only)
-app.get('/api/users', [auth, authorize('Admin')], async (req, res) => {
+app.get("/api/users", [auth, authorize("Admin")], async (req, res) => {
   try {
     const users = await pool.query(
       `SELECT u.id, u.username, r.name AS role, u.is_active, u.created_at 
@@ -76,26 +76,30 @@ app.get('/api/users', [auth, authorize('Admin')], async (req, res) => {
     res.json(users.rows);
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).send("Server Error");
   }
 });
 // @route   PUT /api/users/:id
 // @desc    Update a user's role or active status
 // @access  Private (Admin Only)
-app.put('/api/users/:id', [auth, authorize('Admin')], async (req, res) => {
+app.put("/api/users/:id", [auth, authorize("Admin")], async (req, res) => {
   try {
     const { id } = req.params;
     const { role, is_active } = req.body;
 
     // Prevent admin from deactivating themselves
     if (parseInt(id) === req.user.id && is_active === false) {
-      return res.status(400).json({ msg: 'Admin cannot deactivate their own account.' });
+      return res
+        .status(400)
+        .json({ msg: "Admin cannot deactivate their own account." });
     }
 
     // Get the role_id from the role name
-    const roleQuery = await pool.query("SELECT id FROM Roles WHERE name = $1", [role]);
+    const roleQuery = await pool.query("SELECT id FROM Roles WHERE name = $1", [
+      role,
+    ]);
     if (roleQuery.rows.length === 0) {
-      return res.status(400).json({ msg: 'Invalid role' });
+      return res.status(400).json({ msg: "Invalid role" });
     }
     const role_id = roleQuery.rows[0].id;
 
@@ -109,10 +113,9 @@ app.put('/api/users/:id', [auth, authorize('Admin')], async (req, res) => {
     );
 
     res.json(updatedUser.rows[0]);
-
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).send("Server Error");
   }
 });
 
@@ -123,13 +126,15 @@ app.put('/api/users/:id', [auth, authorize('Admin')], async (req, res) => {
 // @route   GET /api/stats/summary
 // @desc    Get dashboard summary stats
 // @access  Private (All logged-in users)
-app.get('/api/stats/summary', auth, async (req, res) => {
+app.get("/api/stats/summary", auth, async (req, res) => {
   try {
     // Run all count queries in parallel
     const [totalItemsRes, totalStockRes, lowStockRes] = await Promise.all([
       pool.query("SELECT COUNT(*) FROM Items WHERE is_active = true"),
       pool.query("SELECT SUM(current_stock) FROM Items WHERE is_active = true"),
-      pool.query("SELECT COUNT(*) FROM Items WHERE current_stock < reorder_level AND is_active = true")
+      pool.query(
+        "SELECT COUNT(*) FROM Items WHERE current_stock < reorder_level AND is_active = true"
+      ),
     ]);
 
     res.json({
@@ -137,30 +142,33 @@ app.get('/api/stats/summary', auth, async (req, res) => {
       totalStock: parseInt(totalStockRes.rows[0].sum, 10) || 0,
       lowStockItems: parseInt(lowStockRes.rows[0].count, 10),
     });
-
   } catch (err) {
     console.error(err.message);
-    res.status(500).send('Server Error');
+    res.status(500).send("Server Error");
   }
 });
 
 // @route   GET /api/reports/low-stock
 // @desc    Get items that are low on stock
 // @access  Private (Keeper, Admin)
-app.get('/api/reports/low-stock', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
-  try {
-    const items = await pool.query(
-      `SELECT id, sku, name, current_stock, reorder_level 
+app.get(
+  "/api/reports/low-stock",
+  [auth, authorize("Admin", "Keeper")],
+  async (req, res) => {
+    try {
+      const items = await pool.query(
+        `SELECT id, sku, name, current_stock, reorder_level 
        FROM Items
        WHERE current_stock < reorder_level AND is_active = true
        ORDER BY (reorder_level - current_stock) DESC`
-    );
-    res.json(items.rows);
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+      );
+      res.json(items.rows);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send("Server Error");
+    }
   }
-});
+);
 
 /*
  * @route   POST /api/auth/login
@@ -204,7 +212,7 @@ app.post("/api/auth/login", async (req, res) => {
       { expiresIn: "5h" },
       (err, token) => {
         if (err) throw err;
-        res.json({ token }); 
+        res.json({ token });
       }
     );
   } catch (err) {
@@ -352,15 +360,15 @@ app.put(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, description, category_id, reorder_level, attributes } =
+      const { name, description, category_id, reorder_level, attributes,cost } =
         req.body;
 
       const updatedItem = await pool.query(
         `UPDATE Items
-       SET name = $1, description = $2, category_id = $3, reorder_level = $4, attributes = $5
-       WHERE id = $6
-       RETURNING *`,
-        [name, description, category_id, reorder_level, attributes, id]
+   SET name = $1, description = $2, category_id = $3, reorder_level = $4, attributes = $5, cost = $6
+   WHERE id = $7
+   RETURNING *`,
+        [name, description, category_id, reorder_level, attributes, cost, id]
       );
 
       if (updatedItem.rows.length === 0) {
@@ -386,11 +394,14 @@ app.put(
 // @route   GET /api/transactions
 // @desc    Get all transactions (for audit log)
 // @access  Private (Admin, Keeper)
-app.get('/api/transactions', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
-  try {
-    const { limit } = req.query;
+app.get(
+  "/api/transactions",
+  [auth, authorize("Admin", "Keeper")],
+  async (req, res) => {
+    try {
+      const { limit } = req.query;
 
-    let queryString = `
+      let queryString = `
       SELECT 
          tx.id, 
          tx.type, 
@@ -404,32 +415,32 @@ app.get('/api/transactions', [auth, authorize('Admin', 'Keeper')], async (req, r
        LEFT JOIN Users u ON tx.user_id = u.id
        ORDER BY tx.created_at DESC
     `;
-    
-    const queryParams = [];
 
-    // 3. Add LIMIT if it exists
-    if (limit) {
-      queryString += ` LIMIT $1`;
-      queryParams.push(parseInt(limit));
+      const queryParams = [];
+
+      // 3. Add LIMIT if it exists
+      if (limit) {
+        queryString += ` LIMIT $1`;
+        queryParams.push(parseInt(limit));
+      }
+
+      // 4. Execute the query
+      const transactions = await pool.query(queryString, queryParams);
+
+      res.json(transactions.rows);
+    } catch (err) {
+      console.error(err.message);
+      res.status(500).send("Server Error");
     }
-
-    // 4. Execute the query
-    const transactions = await pool.query(queryString, queryParams);
-    
-    res.json(transactions.rows);
-
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
   }
-});
+);
 // @route   POST /api/transactions
 // @desc    Log a new stock transaction (IN/OUT/ADJUST)
 // @access  Private (All roles can do this)
 app.post("/api/transactions", auth, async (req, res) => {
   try {
     const { item_id, type, quantity, notes } = req.body;
-    const { id: user_id } = req.user; 
+    const { id: user_id } = req.user;
     // 1. Basic validation
     if (!item_id || !type || !quantity) {
       return res
@@ -443,8 +454,8 @@ app.post("/api/transactions", auth, async (req, res) => {
     }
 
     if (type === "OUTBOUND") {
-      tx_quantity = -Math.abs(tx_quantity); 
-      tx_quantity = Math.abs(tx_quantity); 
+      tx_quantity = -Math.abs(tx_quantity);
+      // tx_quantity = Math.abs(tx_quantity);
     }
 
     if (type === "OUTBOUND") {
@@ -591,6 +602,55 @@ app.delete(
     }
   }
 );
+
+// Add this with your other reports
+// @route   GET /api/reports/stock-value-history
+// @desc    Get the total stock value for the last 30 days
+// @access  Private (Keeper, Admin)
+app.get('/api/reports/stock-value-history', [auth, authorize('Admin', 'Keeper')], async (req, res) => {
+  try {
+    const query = `
+      WITH daily_changes AS (
+        -- 1. Get the value of each transaction
+        SELECT
+          DATE_TRUNC('day', tx.created_at) AS date,
+          SUM(tx.quantity * i.cost) AS net_value_change
+        FROM InventoryTransactions tx
+        JOIN Items i ON tx.item_id = i.id
+        GROUP BY DATE_TRUNC('day', tx.created_at)
+      ),
+      all_dates AS (
+        -- 2. Generate a series of the last 30 days
+        SELECT generate_series(
+          (NOW() - INTERVAL '29 days')::date,
+          NOW()::date,
+          '1 day'::interval
+        ) AS date
+      ),
+      daily_totals AS (
+        -- 3. Get the *change* for each of the last 30 days (0 if no change)
+        SELECT
+          d.date,
+          COALESCE(dc.net_value_change, 0) AS daily_net_change
+        FROM all_dates d
+        LEFT JOIN daily_changes dc ON d.date = dc.date
+      )
+      -- 4. Calculate the cumulative (running total) value
+      SELECT
+        date::date,
+        SUM(daily_net_change) OVER (ORDER BY date ASC) AS cumulative_value
+      FROM daily_totals
+      ORDER BY date ASC;
+    `;
+    
+    const history = await pool.query(query);
+    res.json(history.rows);
+
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
 
 // --- START SERVER ---
 const PORT = process.env.PORT || 5000;
