@@ -13,12 +13,9 @@ function Dashboard() {
         Welcome, {user.username || user.role}!
       </h1>
       
-      {/* 1. Stats Cards */}
       <StatCards />
       
-      {/* 2. Main Content Grid */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Recent Transactions (takes 2/3 space on large screens) */}
         <div className="lg:col-span-2">
           <RecentTransactions />
         </div>

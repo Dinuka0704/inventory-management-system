@@ -115,7 +115,6 @@ function InventoryPage() {
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Stock
               </th>
-              {/* 5. Add new header for this action */}
               <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                 Stock Actions
               </th>
@@ -140,7 +139,6 @@ function InventoryPage() {
                   {item.current_stock}
                 </td>
 
-                {/* 6. Add new cell with the "Adjust" button */}
                 <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
                   <button
                     onClick={() => handleAdjestClick(item)}
