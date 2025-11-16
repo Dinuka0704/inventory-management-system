@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
+import { useNavigate } from 'react-router-dom'; 
 
 function Login() {
   const [username, setUsername] = useState('');
@@ -10,7 +10,7 @@ function Login() {
   const [error, setError] = useState(null);
   
   const { login } = useAuth();
-  const navigate = useNavigate(); // 2. Initialize the hook
+  const navigate = useNavigate(); 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,7 +23,6 @@ function Login() {
       
       login(response.data); // Save the token
       
-      // 3. Navigate to the dashboard!
       navigate('/dashboard', { replace: true });
 
     } catch (err) {

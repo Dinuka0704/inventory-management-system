@@ -418,13 +418,11 @@ app.get(
 
       const queryParams = [];
 
-      // 3. Add LIMIT if it exists
       if (limit) {
         queryString += ` LIMIT $1`;
         queryParams.push(parseInt(limit));
       }
 
-      // 4. Execute the query
       const transactions = await pool.query(queryString, queryParams);
 
       res.json(transactions.rows);
@@ -441,7 +439,7 @@ app.post("/api/transactions", auth, async (req, res) => {
   try {
     const { item_id, type, quantity, notes } = req.body;
     const { id: user_id } = req.user;
-    // 1. Basic validation
+    
     if (!item_id || !type || !quantity) {
       return res
         .status(400)
